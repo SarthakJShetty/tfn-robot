@@ -1,0 +1,11 @@
+<launch>   
+
+    <!-- Set up the workspace and initialize moveit. -->
+    <node pkg="mixed_media" name="init_scene" type="init_scene.py" output="screen" />
+    <node pkg="intera_interface" name="joint_trajectory_action_server" type="joint_trajectory_action_server.py" output="screen" />
+    <include file="$(find sawyer_moveit_config)/launch/sawyer_moveit_carl.launch">
+        <arg name="load_robot_description" value="true"/>
+        <arg name="electric_gripper" value="true"/>
+    </include>
+
+</launch>

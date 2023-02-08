@@ -1,0 +1,148 @@
+<launch>
+
+    <arg name="rgb_rect" default="1" />
+    <arg name="depth_rect" default="1" />
+    <arg name="ir_rect" default="1" />
+    <arg name="point_cloud" default="1" />
+    <arg name="rgb_point_cloud" default="1" />
+    <arg name="namespace_prefix" default="sawyer_easy_handeye"/>
+
+    <!-- Call the action server for desired behaviors in MoveIt -->
+
+    <node pkg="intera_interface" name="joint_trajectory_action_server" type="joint_trajectory_action_server.py" output="screen">    
+    </node>
+
+    <group ns="k4a">
+        <include file="$(find azure_kinect_ros_driver)/launch/driver.launch" >
+            <arg name="overwrite_robot_description" value="false" />
+            <!-- <arg name="sensor_sn" value="000059793712" /> -->
+            <arg name="sensor_sn" value="000263392612" />
+
+        </include>
+
+        <!-- Spawn a nodelet manager -->
+        <node pkg="nodelet" type="nodelet" name="manager" args="manager" output="screen">
+            <param name="num_worker_threads" value="16" />
+        </node>
+
+        <!-- Spawn an image_proc/rectify nodelet to rectify the RGB image -->
+        <node if="$(arg rgb_rect)"
+              pkg="nodelet" type="nodelet" name="rectify_rgb"
+              args="load image_proc/rectify manager --no-bond"
+              respawn="true">
+            <remap from="image_mono"  to="rgb/image_raw" />
+            <remap from="image_rect"  to="rgb/image_rect_color" />
+        </node>
+
+        <!-- Spawn an image_proc/rectify nodelet to rectify the depth image -->
+        <node if="$(arg depth_rect)"
+              pkg="nodelet" type="nodelet" name="rectify_depth"
+              args="load image_proc/rectify manager --no-bond"
+              respawn="true">
+            <remap from="image_mono"  to="depth/image_raw" />
+            <remap from="image_rect"  to="depth/image_rect" />
+
+            <param name="interpolation" value="0" />
+        </node>
+
+        <!-- Spawn an image_proc/rectify nodelet to rectify the IR image -->
+        <node if="$(arg ir_rect)"
+              pkg="nodelet" type="nodelet" name="rectify_ir"
+              args="load image_proc/rectify manager --no-bond"
+              respawn="true">
+            <remap from="image_mono"  to="ir/image_raw" />
+            <remap from="image_rect"  to="ir/image_rect" />
+        </node>
+
+        <group if="$(arg point_cloud)">
+            <!-- Spawn a depth_image_proc/point_cloud_xyz nodelet to convert the
+                depth image into a point cloud -->
+            <node unless="$(arg rgb_point_cloud)"
+                  pkg="nodelet" type="nodelet" name="point_cloud_xyz"
+                  args="load depth_image_proc/point_cloud_xyz manager --no-bond"
+                  respawn="true">
+                <remap from="image_rect"  to="depth/image_rect" />
+            </node>
+
+            <group if="$(arg rgb_point_cloud)">
+                <!-- Spawn a depth_image_proc/register nodelet to transform the
+                    depth image into the color camera co-ordinate space -->
+                <node pkg="nodelet" type="nodelet" name="depth_register"
+                      args="load depth_image_proc/register manager --no-bond"
+                      respawn="true">
+                </node>
+
+                <!-- Spawn a depth_image_proc/point_cloud_xyzrgb nodelet to convert the
+                    depth_registered and color images image into a colorized point cloud -->
+                <node pkg="nodelet" type="nodelet" name="point_cloud_xyzrgb"
+                      args="load depth_image_proc/point_cloud_xyzrgb manager --no-bond"
+                      respawn="true">
+                </node>
+            </group>
+        </group>
+    </group>
+
+    <!-- <node pkg="mixed_media" name="hand_aruco_publisher" type="hand_aruco_publisher.py" output="screen" /> -->
+
+    <!-- Call easy_aruco marker detector -->
+
+    <!-- <include file="$(find easy_aruco)/launch/track_aruco_marker.launch" >
+        <arg name="camera_namespace" value="/k4a/rgb" />
+        <arg name="dictionary" value="DICT_6X6_250" />
+        <arg name="marker_size" value="0.05" />
+        <arg name="reference_frame" value="camera_base"/>
+        <arg name="camera_frame" value="rgb_camera_link"/>
+    </include> -->
+
+    <!-- Call Sawyer MoveIt -->
+
+    <!-- <include file="$(find sawyer_moveit_config)/launch/sawyer_moveit.launch"> -->
+    <!-- </include> -->
+    <include file="$(find sawyer_moveit_config)/launch/planning_context.launch">
+        <arg name="load_robot_description" value="true"/>
+        <arg name="controller_box" value="false"/>
+        <arg name="pedestal" value="false"/>
+        <arg name="vacuum_gripper" value="true"/>
+    </include>
+
+    <include file="$(find sawyer_moveit_config)/launch/move_group.launch">
+        <arg name="kinect" value="false" />
+        <arg name="xtion" value="false" />
+        <arg name="allow_trajectory_execution" value="true"/>
+        <arg name="fake_execution" value="false"/>
+        <arg name="info" value="true"/>
+        <arg name="debug" value="false"/>
+    </include>
+
+    <!-- Call Easy HandEye Calibration -->
+    <node pkg="mixed_media" name="init_scene" type="init_scene.py" output="screen" />
+
+    <!-- start ArUco -->
+    <node name="aruco_tracker" pkg="aruco_ros" type="single">
+        <remap from="/camera_info" to="/k4a/rgb/camera_info" /> <!-- azure -->
+        <remap from="/image" to="/k4a/rgb/image_rect_color" /> <!-- azure -->
+        <param name="image_is_rectified" value="true"/>
+        <param name="marker_size"        value="0.04"/>
+        <param name="marker_id"          value="582"/>
+        <param name="reference_frame"    value="camera_base"/>
+        <param name="camera_frame"       value="rgb_camera_link"/>
+        <param name="marker_frame"       value="marker_0" />
+    </node>
+
+
+    <include file="$(find easy_handeye)/launch/calibrate.launch">
+        <arg name="move_group" value="right_arm"/>
+        <arg name="eye_on_hand" value="false"/>
+
+        <arg name="tracking_base_frame" value="camera_base"/>
+        <arg name="tracking_marker_frame" value="marker_0"/>
+        <arg name="robot_base_frame" value="base"/>
+        <arg name="robot_effector_frame" value="right_vacuum_gripper_base_aruco"/>
+
+        <arg name="freehand_robot_movement" value="true"/>
+        <arg name="robot_velocity_scaling" value="0.5"/>
+        <arg name="robot_acceleration_scaling" value="0.2"/>
+    </include>
+
+
+</launch>

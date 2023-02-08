@@ -1,0 +1,55 @@
+<launch>
+    <arg name="publish_tip" default="true" />
+    
+    <!-- Start camera. -->
+    <include file="$(find mixed_media)/launch/azure_kinect.launch" />
+
+    <!-- Decide what frames to publish depending on application. -->
+    <!-- <group if="$(arg publish_tip)">
+        <node pkg="mixed_media" name="tip_publisher" type="tip_publisher.py" output="screen" />
+    </group> -->
+    <!-- <group if="$(eval arg('publish_tip') == 0)">
+        <include file="$(find easy_aruco)/launch/track_aruco_marker.launch" >
+            <arg name="camera_namespace" value="/k4a/rgb" />
+            <arg name="dictionary" value="DICT_6X6_250" />
+            <arg name="marker_size" value="0.05" />
+            <arg name="reference_frame" value="camera_base"/>
+            <arg name="camera_frame" value="rgb_camera_link"/>
+        </include>
+        <node pkg="mixed_media" name="hand_aruco_publisher" type="hand_aruco_publisher.py" output="screen" />
+    </group> -->
+
+    <node pkg="mixed_media" name="hand_aruco_publisher" type="hand_aruco_publisher.py" output="screen" />
+
+
+    <!-- start ArUco -->
+    <node name="aruco_tracker" pkg="aruco_ros" type="single">
+        <remap from="/camera_info" to="/k4a/rgb/camera_info" /> <!-- azure -->
+        <remap from="/image" to="/k4a/rgb/image_rect_color" /> <!-- azure -->
+        <param name="image_is_rectified" value="true"/>
+        <param name="marker_size"        value="0.04"/>
+        <param name="marker_id"          value="582"/>
+        <param name="reference_frame"    value="camera_base"/>
+        <param name="camera_frame"       value="rgb_camera_link"/>
+        <param name="marker_frame"       value="marker_0" />
+    </node>
+
+    <!-- Publish the calibration. -->
+    <include file="$(find easy_handeye)/launch/publish.launch">
+        <arg name="eye_on_hand" value="false"/>
+    </include>
+
+    <!-- Set up the workspace and initialize moveit. -->
+    <node pkg="mixed_media" name="init_scene" type="init_scene.py" output="screen" />
+    <node pkg="intera_interface" name="joint_trajectory_action_server" type="joint_trajectory_action_server.py" output="screen" />
+    <include file="$(find sawyer_moveit_config)/launch/sawyer_moveit.launch">
+        <arg name="load_robot_description" value="true"/>
+        <arg name="controller_box" value="false"/>
+        <arg name="pedestal" value="false"/>
+        <arg name="vacuum_gripper" value="true"/>
+    </include>
+
+    <include file="$(find realtime_urdf_filter)/launch/realtime_urdf_filter.launch" />
+    <include file="$(find mixed_media)/launch/depth_to_cloud.launch" />
+
+</launch>
