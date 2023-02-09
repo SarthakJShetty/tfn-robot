@@ -1,6 +1,6 @@
-# mixed-media-physical
+# ToolFlowNet Robot Code Setup
 
-Relevant code for physical mixed media experiments. This is a catkin package.
+Relevant code for ToolFlowNet's physical experiments. This repository is essentially a catkin package.
 
 We also need potentially modified versions of the following packages:
 

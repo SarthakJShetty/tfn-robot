@@ -32,6 +32,8 @@ This command runs the point cloud processing node, that uses depth and RGB image
 
 If there are no errors, you should be all set to collect demonstrations or run inference on a trained model.
 
+**Note:** [Here are additional notes] on our specific setup, which involves the [**ReThink Sawyer Arm**](https://www.rethinkrobotics.com/sawyer) and the [**Microsoft Azure Kinect**](https://azure.microsoft.com/en-us/products/kinect-dk/) that we used for the experiments reported in our [**CoRL '22 paper**](https://tinyurl.com/toolflownet).
+
 ## Collecting demonstrations:
 
 To collect demonstrations, run `robot.py` with the following flags:
@@ -114,7 +116,7 @@ This should result in a folder called `v06_human_demonstrator_variable_composing
     python robot.py --policy run_inference --n_targ=1
     ```
 
-2. On the GPU machine, which contains the trained model, run `inference.py`, available on [`softagent_tfn`](https://github.com/DanielTakeshi/softagent_tfn):
+2. On the GPU machine, which contains the trained model, run `inference.py`, available on [`softagent_tfn`](https://github.com/DanielTakeshi/softagent_tfn/tree/physical):
 
     ```
     python -m bc.inference --exp_config SVD_POINTWISE_3D_FLOW --model_path data/local/BCphy_v06_human_fast_zero_lag_variable_composing_ntrain_0100_PCL_PNet2_svd_pointwise_acttype_flow_rawPCL_scaleTarg/BCphy_v06_human_fast_zero_lag_variable_composing_ntrain_0100_PCL_PNet2_svd_pointwise_acttype_flow_rawPCL_scaleTarg_2022_09_18_21_51_08_0001/model/ckpt_0340.tar --obs_dim 5 --max_n_points 1400 --scale_factor 100.0
@@ -122,12 +124,14 @@ This should result in a folder called `v06_human_demonstrator_variable_composing
 
 3. The control PC running `robot.py` will now send point cloud observations to the GPU machine, which in-turn will run inference with the trained model and send back end-effector actions to the control PC.
 
-4. You can download the final variant of the model that we used to generate results for our CoRL paper here, using:
+4. You can download the final variant of the model that we used to generate results for our CoRL '22 paper here, using:
     ```
     gdown --folder 163NsJJDxAuSpL6RSsVAEWnT0rbAyPMub
     ```
 
-The inference code uses the checkpoint directly in the ```tar``` format, and therefore you do not need to `untar` it.
+The inference code uses the checkpoint directly in the ```tar``` format, and therefore you do not need to `untar` it. 
+
+**Note:** This checkpoint is to be used after the `--model` flag in the `bc.inference` command above.
 
 ## Contact:
 If you run into any issues with the workdlow, please contact the authors to correct/update this ```README```.
