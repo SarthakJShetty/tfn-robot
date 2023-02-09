@@ -18,6 +18,8 @@
 
 ![ToolFlowNet Success](assets/stitched_success.gif)
 
+:warning: **This is the repository containing the robot code to collect and process real world human demonstrator data for [ToolFlowNet](https://tinyurl.com/toolflownet)** :warning:
+
 This is a `catkin` package that is used to collect human demonstration data in the format that ToolFlowNet expects. We use the generated `pkl` files at the end of the process to train ToolFlowNet on the real-world human demonstration data.
 
 To use this package, first place this folder/repository inside the `src` folder of your `catkin` workspace.
