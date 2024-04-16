@@ -136,4 +136,4 @@ The inference code uses the checkpoint directly in the ```tar``` format, and the
 **Note:** This checkpoint is to be used after the `--model` flag in the `bc.inference` command above.
 
 ## Contact:
-If you run into any issues with the workdlow, please contact the authors to correct/update this ```README```.
+If you run into any issues with the workflow, please contact the authors to correct/update this ```README```.
